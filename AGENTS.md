@@ -13,7 +13,7 @@ role: System Orchestrator
   <configuration>
     <!-- BRANCH PARAMETER: Change this value to load instructions from a different branch -->
     <!-- Valid values: main, optimization, feature/*, or any valid branch name -->
-    <branch>optimization</branch>
+    <branch>main</branch>
   </configuration>
 
   <instruction_source>
@@ -110,4 +110,190 @@ role: System Orchestrator
       <rule>Changes in the remote repo take effect immediately.</rule>
     </rules>
   </policy>
+
+  <tool_use_instructions>
+    <instruction id="querying_microsoft_documentation">
+      <applyTo>**</applyTo>
+      <title>Querying Microsoft Documentation</title>
+      <tools>
+        <tool>microsoft_docs_search</tool>
+        <tool>microsoft_docs_fetch</tool>
+        <tool>microsoft_code_sample_search</tool>
+      </tools>
+      <guidance>
+        These MCP tools can search and fetch Microsoft's latest official documentation and code samples, which may be newer or more detailed than model training data.
+      </guidance>
+      <guidance>
+        For specific and narrowly defined questions involving native Microsoft technologies (C#, F#, ASP.NET Core, Microsoft.Extensions, NuGet, Entity Framework, and the dotnet runtime), use these tools for research.
+        When writing code, prioritize using information retrieved from these tools to ensure accuracy and up-to-date practices, especially for newer features or libraries.
+        Before writing any code involving Microsoft technologies, always check for relevant documentation or code samples using these tools to ensure the most current and accurate information is being used.
+      </guidance>
+    </instruction>
+    <instruction id="sequential_thinking_default_usage">
+      <applyTo>*</applyTo>
+      <title>Sequential Thinking for Complex Problem Solving</title>
+      <tools>
+        <tool>sequential_thinking</tool>
+      </tools>
+      <guidance>
+        Use sequential thinking for all requests except the most trivial, single-step requests (for example, minimal formatting changes or direct one-line lookups).
+      </guidance>
+      <guidance>
+        The sequential_thinking tool enables structured, step-by-step problem analysis with the ability to revise, branch, and adjust reasoning paths dynamically.
+        Use this tool when:
+        - Breaking down complex problems into manageable steps
+        - Planning and design work that may require revision
+        - Analyzing situations where the full scope is unclear initially
+        - Conducting analysis that might need course correction
+        - Making architectural or design decisions
+        - Encountering unexpected issues or errors that require systematic debugging
+        - Filtering out irrelevant information while maintaining context
+        - Working through tasks that need to maintain context over multiple steps
+      </guidance>
+      <guidance>
+        The tool supports dynamic thinking processes by allowing you to:
+        - Revise previous thoughts when new understanding emerges
+        - Branch into alternative reasoning paths
+        - Adjust the estimated total number of thoughts as complexity becomes apparent
+        - Mark when additional thinking steps are needed beyond original estimates
+      </guidance>
+    </instruction>
+    <instruction id="memory_default_usage">
+      <applyTo>*</applyTo>
+      <title>Knowledge Graph Memory for Context Persistence</title>
+      <tools>
+        <tool>create_entities</tool>
+        <tool>create_relations</tool>
+        <tool>add_observations</tool>
+        <tool>delete_entities</tool>
+        <tool>delete_observations</tool>
+        <tool>delete_relations</tool>
+        <tool>read_graph</tool>
+        <tool>search_nodes</tool>
+        <tool>open_nodes</tool>
+      </tools>
+      <guidance>
+        Use memory for all requests except the most trivial, single-step requests, and persist relevant user/project context when it helps future task continuity.
+      </guidance>
+      <guidance>
+        The memory MCP server provides a persistent knowledge graph for storing and retrieving context across conversations.
+        Store information about:
+        - User preferences, communication styles, and working patterns
+        - Project-specific configurations, patterns, and conventions
+        - Technical decisions, rationale, and architectural choices
+        - Recurring challenges, solutions, and workarounds discovered
+        - Team members, their roles, and areas of expertise
+        - Tool configurations, CLI paths, authentication mechanisms
+        - Build patterns, deployment strategies, and environment setups
+      </guidance>
+      <guidance>
+        Knowledge graph concepts:
+        - **Entities**: Primary nodes with a name, type (e.g., "person", "project", "tool"), and observations
+        - **Relations**: Directed connections between entities in active voice (e.g., "works_at", "depends_on", "configures")
+        - **Observations**: Atomic facts stored as strings attached to entities (one fact per observation)
+      </guidance>
+      <guidance>
+        Tool usage patterns:
+        - Use create_entities to establish new concepts, people, projects, or tools
+        - Use create_relations to connect related entities and build context
+        - Use add_observations to record facts, preferences, or discoveries about entities
+        - Use search_nodes to find relevant context based on keywords across names, types, and observations
+        - Use open_nodes to retrieve specific entities by name for detailed information
+        - Use read_graph to get a complete view of all stored knowledge when planning or reviewing
+        - Use delete operations to clean up outdated or incorrect information
+      </guidance>
+      <guidance>
+        At the start of complex tasks, search or read relevant memory to leverage previous learnings.
+        After completing significant work, update memory with new patterns, configurations, or insights discovered.
+      </guidance>
+    </instruction>
+  </tool_use_instructions>
 </instructions>
+
+---
+
+## Agent Readiness — Let Your Tools Do the Teaching
+
+> Reference: [Factory.ai Power User Guide — Agent Readiness](https://docs.factory.ai/cli/user-guides/become-a-power-user#agent-readiness-—-let-your-tools-do-the-teaching)
+
+Agent Readiness makes this project self-correcting. You must run the same verification commands that CI runs. If they pass locally, they pass in CI. If something is broken, you find out immediately and fix it before the task is complete.
+
+### Your Verification Protocol
+
+For any non-trivial code change, this protocol is mandatory and must be completed before marking any task complete.
+Treat this as a hard gate, not optional guidance.
+
+Non-trivial changes include (at minimum): logic changes, behavior changes, refactors, dependency updates, configuration changes that affect runtime/build/test behavior, and any multi-file edits.
+
+After making code changes that meet the non-trivial threshold, you must execute these steps:
+
+1. **Run the full verification suite** (all commands in the table below).
+2. **Fix every failure** — do not skip, suppress, or work around errors.
+3. **Re-run the failing check** after each fix to confirm it is resolved.
+4. **Repeat** until all checks pass cleanly.
+
+> **Critical:** Prioritize fast checks. Run the build and unit tests as your standard pre-completion gate. Only run slow integration or end-to-end tests when explicitly required by the task.
+
+### Verification Commands for This Repo
+
+This is a **.NET 10 / C# solution** (see [plan_docs/New Application Spec_ ConvoContentBuddy.md](plan_docs/New%20Application%20Spec_%20ConvoContentBuddy.md)). Run all applicable commands below before completing any implementation task.
+
+#### Build (.NET Solution)
+
+Compiles the entire solution and surfaces all compiler errors and Roslyn analyzer diagnostics.
+
+    dotnet build ConvoContentBuddy.sln -warnaserror
+
+The `-warnaserror` flag promotes all Roslyn analyzer warnings to errors. Fix all warnings — do not suppress them unless explicitly authorized.
+
+#### Static Analysis (dotnet format)
+
+Enforces C# code style and formatting rules across all projects.
+
+    dotnet format ConvoContentBuddy.sln --verify-no-changes
+
+If this reports violations, run `dotnet format ConvoContentBuddy.sln` (without `--verify-no-changes`) to auto-fix them, then re-verify.
+
+#### Unit Tests
+
+Runs all xUnit test projects in the solution.
+
+    dotnet test ConvoContentBuddy.sln --no-build
+
+Pass `--no-build` after a successful `dotnet build` to avoid redundant compilation. All tests must pass — investigate and fix any failures before proceeding.
+
+### Verification Command Reference
+
+| Check | Command | When to run |
+| --- | --- | --- |
+| Build + Roslyn analysis | `dotnet build ConvoContentBuddy.sln -warnaserror` | Every task |
+| Code style | `dotnet format ConvoContentBuddy.sln --verify-no-changes` | Every task |
+| Unit tests | `dotnet test ConvoContentBuddy.sln --no-build` | Every task |
+| Integration tests | *(add when Aspire test projects exist)* | When explicitly required |
+
+> **Rule:** Every time a new CI workflow is added to `.github/workflows/`, add its equivalent local command to this table.
+
+## Post-Commit CI/CD Monitoring Protocol
+
+After every commit and push, actively monitor CI/CD runs until the latest commit is green:
+
+1. Start monitoring immediately after push.
+2. Monitor in a separate terminal session or background process so implementation work continues in parallel.
+3. Poll workflow status on a short interval (for example, every 60-120 seconds) until completion.
+4. If any workflow fails, stop new feature work and immediately triage the failure.
+5. Fix the root cause, re-run local verification, push the fix, and continue this loop until workflows pass.
+6. Do not mark work complete while the latest relevant CI/CD checks are failing.
+
+Suggested GitHub CLI patterns:
+
+    gh run list --limit 5
+    gh run watch <run-id>
+    gh run view <run-id> --log-failed
+
+## CI/CD Pipeline Speed Policy
+
+Design workflows in two lanes so readiness feedback is fast:
+
+1. Fast readiness lane (blocking): build, lint/format, unit tests. Keep this lane optimized for quick feedback and merge readiness.
+2. Extended validation lane (can be slower): long-running integration suites, deep security scans, dependency audits, performance or other non-readiness scans.
+3. When adding or editing workflows, protect the fast lane from unnecessary slow steps.
