@@ -1,0 +1,49 @@
+# Build outputs
+bin/
+obj/
+out/
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Rider / VS Code
+.idea/
+.vscode/
+*.code-workspace
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+
+# Test results
+TestResults/
+
+# Coverlet
+**/coverage/
+
+# Local configuration
+appsettings.Development.json
+appsettings.Local.json
+
+# Secrets
+*.secrets.json
+user-secrets.json
+
+# Aspire Dashboard
+.aspire/
+
+# Docker
+.dockerignore
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
