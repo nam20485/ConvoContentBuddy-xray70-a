@@ -100,18 +100,19 @@ public class VectorSearchProvider
         {
             Id = new PointId { Num = (ulong)id },
             Vectors = embedding,
-            Payload = payload.ToDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value switch
-                {
-                    string s => new Value { StringValue = s },
-                    int i => new Value { IntegerValue = i },
-                    double d => new Value { DoubleValue = d },
-                    float f => new Value { DoubleValue = f },
-                    _ => new Value { StringValue = kvp.Value.ToString() }
-                }
-            )
         };
+
+        foreach (var (key, value) in payload)
+        {
+            point.Payload[key] = value switch
+            {
+                string s => new Value { StringValue = s },
+                int i => new Value { IntegerValue = i },
+                double d => new Value { DoubleValue = d },
+                float f => new Value { DoubleValue = f },
+                _ => new Value { StringValue = value.ToString() }
+            };
+        }
 
         await _qdrantClient.UpsertAsync(CollectionName, [point]);
     }

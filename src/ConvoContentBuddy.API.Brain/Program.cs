@@ -1,16 +1,21 @@
 using ConvoContentBuddy.API.Brain.Hubs;
 using ConvoContentBuddy.API.Brain.Services;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults from Aspire
 builder.AddServiceDefaults();
 
+// HTTP client factory for outbound AI API calls
+builder.Services.AddHttpClient();
+
 // Add SignalR with Redis backplane for multi-instance synchronization
 builder.Services.AddSignalR()
     .AddStackExchangeRedis(options =>
     {
-        options.Configuration.Configuration = builder.Configuration.GetConnectionString("redis");
+        var redisConnection = builder.Configuration.GetConnectionString("redis") ?? "localhost:6379";
+        options.Configuration = ConfigurationOptions.Parse(redisConnection);
     });
 
 // Add Semantic Kernel services
